@@ -1,4 +1,6 @@
 import 'quest.dart'; 
+import 'item.dart'; // NEW: Import the item blueprint
+
 class HunterProfile {
   String name;
   int level;
@@ -11,8 +13,12 @@ class HunterProfile {
   int intelligence;
   int endurance;
 
- 
+  // NEW: RPG Systems
   HunterClass playerClass;
+  String rank; // Your "gred" (e.g., E-Rank, S-Rank)
+  int coins;
+  int inventoryCapacity; // Starts at 25 (5x5)
+  List<Item> inventory;
 
   HunterProfile({
     this.name = 'Player',
@@ -23,10 +29,13 @@ class HunterProfile {
     this.agility = 5,
     this.intelligence = 5,
     this.endurance = 5,
-    this.playerClass = HunterClass.beginner, // Defaults to beginner
-  });
+    this.playerClass = HunterClass.beginner,
+    this.rank = 'E-Rank',
+    this.coins = 0,
+    this.inventoryCapacity = 25, 
+    List<Item>? inventory,
+  }) : inventory = inventory ?? []; // If no inventory provided, start empty
 
-  // Translators for saving to the hard drive
   Map<String, dynamic> toJson() {
     return {
       'name': name,
@@ -37,11 +46,20 @@ class HunterProfile {
       'agility': agility,
       'intelligence': intelligence,
       'endurance': endurance,
-      'playerClass': playerClass.name, // Save the class as text
+      'playerClass': playerClass.name,
+      'rank': rank,
+      'coins': coins,
+      'inventoryCapacity': inventoryCapacity,
+      // Convert every item in the backpack into text
+      'inventory': inventory.map((i) => i.toJson()).toList(),
     };
   }
 
   factory HunterProfile.fromJson(Map<String, dynamic> json) {
+    // Safely parse the saved inventory items
+    var invList = json['inventory'] as List? ?? [];
+    List<Item> loadedInventory = invList.map((i) => Item.fromJson(i as Map<String, dynamic>)).toList();
+
     return HunterProfile(
       name: json['name'] as String? ?? 'Player',
       level: json['level'] as int? ?? 1,
@@ -51,11 +69,15 @@ class HunterProfile {
       agility: json['agility'] as int? ?? 5,
       intelligence: json['intelligence'] as int? ?? 5,
       endurance: json['endurance'] as int? ?? 5,
-      // Safely read the class string back into an Enum
       playerClass: HunterClass.values.firstWhere(
         (e) => e.name == json['playerClass'],
         orElse: () => HunterClass.beginner,
       ),
+      // Safely default new values if loading an old save file
+      rank: json['rank'] as String? ?? 'E-Rank',
+      coins: json['coins'] as int? ?? 0,
+      inventoryCapacity: json['inventoryCapacity'] as int? ?? 25,
+      inventory: loadedInventory,
     );
   }
 }

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'theme/app_theme.dart';
-import 'ui/awakening_screen.dart'; // <-- We changed the import here
+import 'ui/inventory_screen.dart'; // <-- We changed the import here
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -16,7 +16,7 @@ class LevelZeroApp extends StatelessWidget {
       title: 'LevelZero.Qst',
       debugShowCheckedModeBanner: false, 
       theme: AppTheme.darkTheme,         
-      home: const AwakeningScreen(),     // <-- And changed the boot screen here!
+      home: const InventoryScreen(),     // <-- And changed the boot screen here!
     );
   }
 }
