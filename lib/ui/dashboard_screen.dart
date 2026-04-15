@@ -46,7 +46,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Hunter Hub'),
+        title: GestureDetector(
+          onTap: () {
+            print("Navigate to Profile"); // Placeholder for navigation
+            // Future navigation to profile screen
+          },
+          child: const Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.account_circle, size: 30),
+              SizedBox(width: 8),
+              Text('Hunter Profile'),
+            ],
+          ),
+        ),
+        centerTitle: false, // Align title to the start
       ),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -82,56 +96,67 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
           ),
           const SizedBox(height: 20),
-          // Stats Grid
+          // Stats Row
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: Row(
+              children: [
+                _buildStatCard(context, 'STR', _profile!.strength),
+                const SizedBox(width: 16),
+                _buildStatCard(context, 'AGI', _profile!.agility),
+                const SizedBox(width: 16),
+                _buildStatCard(context, 'INT', _profile!.intelligence),
+                const SizedBox(width: 16),
+                _buildStatCard(context, 'END', _profile!.endurance),
+              ],
+            ),
+          ),
+          const SizedBox(height: 30),
+          // Daily Quests Section Header
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: Text(
+              "Daily Quests",
+              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.primary,
+                    fontWeight: FontWeight.bold,
+                  ),
+            ),
+          ),
+          const SizedBox(height: 10),
+          // Quests List
           Expanded(
-            child: GridView.builder(
-              padding: const EdgeInsets.all(16.0),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                crossAxisSpacing: 16.0,
-                mainAxisSpacing: 16.0,
-                childAspectRatio: 1.5,
-              ),
-              itemCount: 4, // For STR, AGI, INT, END
+            child: ListView.builder(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              itemCount: 3, // Placeholder for 3 quests
               itemBuilder: (context, index) {
-                String statName;
-                int statValue;
-                switch (index) {
-                  case 0:
-                    statName = 'STR';
-                    statValue = _profile!.strength;
-                    break;
-                  case 1:
-                    statName = 'AGI';
-                    statValue = _profile!.agility;
-                    break;
-                  case 2:
-                    statName = 'INT';
-                    statValue = _profile!.intelligence;
-                    break;
-                  case 3:
-                    statName = 'END';
-                    statValue = _profile!.endurance;
-                    break;
-                  default:
-                    statName = '';
-                    statValue = 0;
-                }
                 return Card(
-                  child: Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
+                  margin: const EdgeInsets.only(bottom: 10),
+                  child: Padding(
+                    padding: const EdgeInsets.all(12.0),
+                    child: Row(
                       children: [
-                        Text(
-                          statName,
-                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                color: Theme.of(context).colorScheme.primary,
-                              ),
+                        Expanded(
+                          child: Text(
+                            "Placeholder Quest ${index + 1}: 0/100",
+                            style: Theme.of(context).textTheme.titleMedium,
+                          ),
                         ),
-                        const SizedBox(height: 5),
-                        Text(
-                          '$statValue',
-                          style: Theme.of(context).textTheme.headlineMedium,
+                        Checkbox(
+                          value: false, // Placeholder value
+                          onChanged: (bool? value) {
+                            // Handle checkbox state change (future implementation)
+                            print("Quest ${index + 1} checked: $value");
+                          },
+                          fillColor: MaterialStateProperty.resolveWith<Color>(
+                            (Set<MaterialState> states) {
+                              if (states.contains(MaterialState.selected)) {
+                                return Theme.of(context).colorScheme.secondary;
+                              }
+                              return Theme.of(context).colorScheme.surface;
+                            },
+                          ),
+                          checkColor: Theme.of(context).colorScheme.onSecondary,
                         ),
                       ],
                     ),
@@ -141,6 +166,33 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildStatCard(BuildContext context, String statName, int statValue) {
+    return Expanded(
+      child: Card(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 8.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                statName,
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      color: Theme.of(context).colorScheme.primary,
+                      fontWeight: FontWeight.bold,
+                    ),
+              ),
+              const SizedBox(height: 5),
+              Text(
+                '$statValue',
+                style: Theme.of(context).textTheme.headlineSmall,
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
