@@ -1,29 +1,29 @@
-
 // --- NEW ENUMS FOR RPG MECHANICS ---
 enum QuestType { daily, main, penalty }
-enum HunterClass { beginner, assassin, tank, mage }
-enum StatFocus { strength, agility, intelligence, endurance, general }
 
-// Difficulty multiplier: E=1, D=2, C=3, B=4, A=5, S=10
+// ADDED: The expanded roster of basic classes
+enum HunterClass { beginner, assassin, tank, mage, knight, fighter, ranger, scholar }
+
+enum StatFocus { strength, agility, intelligence, endurance, general }
 enum QuestDifficulty { rankE, rankD, rankC, rankB, rankA, rankS }
 
 class Quest {
   final String id;
   final String title;
   final String description;
-  final int xpReward; // The final calculated XP
+  final int xpReward; 
   bool isCompleted;
   
   final QuestType type;
   final StatFocus statFocus;
   final QuestDifficulty difficulty;
-  final int amount; // Reps, Minutes, or Seconds
+  final int amount; 
 
   Quest({
     required this.id,
     required this.title,
     this.description = '',
-    required this.xpReward, // We will calculate this before passing it in
+    required this.xpReward, 
     this.isCompleted = false,
     this.type = QuestType.daily,
     this.statFocus = StatFocus.general,
@@ -32,14 +32,13 @@ class Quest {
   });
 
   // --- THE XP GENERATOR ENGINE ---
-  // This calculates exactly how much XP a quest should give based on the user's class
   static int calculateDynamicXP({
     required QuestDifficulty difficulty,
     required int amount,
     required StatFocus statFocus,
     required HunterClass playerClass,
   }) {
-    // 1. Convert difficulty rank to a math multiplier
+    // 1. Difficulty Multiplier
     double diffMultiplier = 1.0;
     switch (difficulty) {
       case QuestDifficulty.rankE: diffMultiplier = 1.0; break;
@@ -50,18 +49,43 @@ class Quest {
       case QuestDifficulty.rankS: diffMultiplier = 10.0; break;
     }
 
-    // 2. Base XP Calculation (System scaler reduces massive numbers)
-    // E.g., 100 pushups at Rank C = 100 * 3.0 * 0.5 = 150 Base XP
+    // 2. Base XP
     double systemScaler = 0.5; 
     double baseXP = (amount * diffMultiplier) * systemScaler;
 
-    // 3. Class Affinity Bonus (50% extra XP for doing your job!)
+    // 3. Class Affinity Bonus (The updated logic!)
     double classBonus = 1.0;
-    if (playerClass == HunterClass.assassin && statFocus == StatFocus.agility) classBonus = 1.5;
-    if (playerClass == HunterClass.tank && (statFocus == StatFocus.strength || statFocus == StatFocus.endurance)) classBonus = 1.5;
-    if (playerClass == HunterClass.mage && statFocus == StatFocus.intelligence) classBonus = 1.5;
+    
+    // Skip calculations if it's a general chore (like "wash dishes")
+    if (statFocus != StatFocus.general) {
+      switch (playerClass) {
+        case HunterClass.assassin: // Pure AGI
+          if (statFocus == StatFocus.agility) classBonus = 1.5;
+          break;
+        case HunterClass.tank: // Pure STR / END
+          if (statFocus == StatFocus.strength || statFocus == StatFocus.endurance) classBonus = 1.5;
+          break;
+        case HunterClass.mage: // Pure INT
+          if (statFocus == StatFocus.intelligence) classBonus = 1.5;
+          break;
+        case HunterClass.knight: // The All-Rounder
+          classBonus = 1.3; // Gets 1.3x on ALL stats
+          break;
+        case HunterClass.fighter: // STR + AGI Hybrid
+          if (statFocus == StatFocus.strength || statFocus == StatFocus.agility) classBonus = 1.4;
+          break;
+        case HunterClass.ranger: // AGI + END Hybrid
+          if (statFocus == StatFocus.agility || statFocus == StatFocus.endurance) classBonus = 1.4;
+          break;
+        case HunterClass.scholar: // INT + END Hybrid
+          if (statFocus == StatFocus.intelligence || statFocus == StatFocus.endurance) classBonus = 1.4;
+          break;
+        case HunterClass.beginner:
+          classBonus = 1.0;
+          break;
+      }
+    }
 
-    // Return the final rounded number
     return (baseXP * classBonus).round();
   }
 
