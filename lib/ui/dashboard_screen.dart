@@ -48,8 +48,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       appBar: AppBar(
         title: GestureDetector(
           onTap: () {
-            print("Navigate to Profile"); // Placeholder for navigation
-            // Future navigation to profile screen
+            debugPrint("Navigate to Profile"); // Placeholder for future Profile Screen
           },
           child: const Row(
             mainAxisSize: MainAxisSize.min,
@@ -60,7 +59,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ],
           ),
         ),
-        centerTitle: false, // Align title to the start
+        centerTitle: false, 
       ),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -102,7 +101,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             child: Row(
               children: [
                 _buildStatCard(context, 'STR', _profile!.strength),
-                const SizedBox(width: 16),
+                const SizedBox(width: 16), // Adjusted spacing so they fit nicely
                 _buildStatCard(context, 'AGI', _profile!.agility),
                 const SizedBox(width: 16),
                 _buildStatCard(context, 'INT', _profile!.intelligence),
@@ -145,12 +144,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         Checkbox(
                           value: false, // Placeholder value
                           onChanged: (bool? value) {
-                            // Handle checkbox state change (future implementation)
-                            print("Quest ${index + 1} checked: $value");
+                            debugPrint("Quest ${index + 1} checked: $value"); 
                           },
-                          fillColor: MaterialStateProperty.resolveWith<Color>(
-                            (Set<MaterialState> states) {
-                              if (states.contains(MaterialState.selected)) {
+                          fillColor: WidgetStateProperty.resolveWith<Color>(
+                            (Set<WidgetState> states) {
+                              if (states.contains(WidgetState.selected)) {
                                 return Theme.of(context).colorScheme.secondary;
                               }
                               return Theme.of(context).colorScheme.surface;
@@ -170,6 +168,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
+  // Custom widget to build the stat cards cleanly
   Widget _buildStatCard(BuildContext context, String statName, int statValue) {
     return Expanded(
       child: Card(
