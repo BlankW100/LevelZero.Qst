@@ -12,6 +12,9 @@ class DashboardScreen extends StatefulWidget {
 class _DashboardScreenState extends State<DashboardScreen> {
   final StorageService _storage = StorageService();
   HunterProfile? _profile;
+  
+  // Tracks which tab in the footer is currently selected
+  int _currentTabIndex = 0;
 
   @override
   void initState() {
@@ -24,7 +27,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     HunterProfile? loadedProfile = _storage.loadProfile();
 
     if (loadedProfile == null) {
-      // Create a default profile if none exists
       loadedProfile = HunterProfile();
       await _storage.saveProfile(loadedProfile);
     }
@@ -34,13 +36,34 @@ class _DashboardScreenState extends State<DashboardScreen> {
     });
   }
 
+  // Function to show the Notification Popup
+  void _showNotifications() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: Theme.of(context).colorScheme.surface,
+          title: Text(
+            "System Notifications",
+            style: TextStyle(color: Theme.of(context).colorScheme.primary),
+          ),
+          content: const Text("No new notifications at this time."),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text("CLOSE"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_profile == null) {
       return const Scaffold(
-        body: Center(
-          child: CircularProgressIndicator(),
-        ),
+        body: Center(child: CircularProgressIndicator()),
       );
     }
 
@@ -48,7 +71,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       appBar: AppBar(
         title: GestureDetector(
           onTap: () {
-            debugPrint("Navigate to Profile"); // Placeholder for future Profile Screen
+            debugPrint("Navigate to Profile");
           },
           child: const Row(
             mainAxisSize: MainAxisSize.min,
@@ -59,12 +82,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ],
           ),
         ),
-        centerTitle: false, 
+        centerTitle: false,
+        // ADDED: The Notification Bell
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.notifications_active),
+            color: Theme.of(context).colorScheme.secondary, // Green bell
+            onPressed: _showNotifications,
+          ),
+          const SizedBox(width: 10), // Padding on the right
+        ],
       ),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Level Card
           Card(
             margin: const EdgeInsets.all(16.0),
             child: Padding(
@@ -84,7 +115,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
             ),
           ),
-          // XP Progress Bar
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0),
             child: LinearProgressIndicator(
@@ -95,23 +125,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
           ),
           const SizedBox(height: 20),
-          // Stats Row
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0),
             child: Row(
               children: [
                 _buildStatCard(context, 'STR', _profile!.strength),
-                const SizedBox(width: 16), // Adjusted spacing so they fit nicely
+                const SizedBox(width: 10),
                 _buildStatCard(context, 'AGI', _profile!.agility),
-                const SizedBox(width: 16),
+                const SizedBox(width: 10),
                 _buildStatCard(context, 'INT', _profile!.intelligence),
-                const SizedBox(width: 16),
+                const SizedBox(width: 10),
                 _buildStatCard(context, 'END', _profile!.endurance),
               ],
             ),
           ),
           const SizedBox(height: 30),
-          // Daily Quests Section Header
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0),
             child: Text(
@@ -123,11 +151,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
           ),
           const SizedBox(height: 10),
-          // Quests List
           Expanded(
             child: ListView.builder(
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              itemCount: 3, // Placeholder for 3 quests
+              itemCount: 3,
               itemBuilder: (context, index) {
                 return Card(
                   margin: const EdgeInsets.only(bottom: 10),
@@ -142,10 +169,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           ),
                         ),
                         Checkbox(
-                          value: false, // Placeholder value
-                          onChanged: (bool? value) {
-                            debugPrint("Quest ${index + 1} checked: $value"); 
-                          },
+                          value: false,
+                          onChanged: (bool? value) {},
                           fillColor: WidgetStateProperty.resolveWith<Color>(
                             (Set<WidgetState> states) {
                               if (states.contains(WidgetState.selected)) {
@@ -165,15 +190,38 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
         ],
       ),
+      // ADDED: The Bottom Navigation Bar (Footer)
+      bottomNavigationBar: BottomNavigationBar(
+        type: BottomNavigationBarType.fixed, // Required for more than 3 items
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        selectedItemColor: Theme.of(context).colorScheme.primary,
+        unselectedItemColor: Colors.grey,
+        selectedFontSize: 10, // Small text to fit 6 items
+        unselectedFontSize: 10,
+        currentIndex: _currentTabIndex,
+        onTap: (index) {
+          setState(() {
+            _currentTabIndex = index; // Updates the active icon
+          });
+          // Future: Add routing to switch screens here
+        },
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
+          BottomNavigationBarItem(icon: Icon(Icons.assignment), label: 'Quest'),
+          BottomNavigationBarItem(icon: Icon(Icons.bar_chart), label: 'Stats'),
+          BottomNavigationBarItem(icon: Icon(Icons.shopping_cart), label: 'Shop'),
+          BottomNavigationBarItem(icon: Icon(Icons.backpack), label: 'Inv'),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
+        ],
+      ),
     );
   }
 
-  // Custom widget to build the stat cards cleanly
   Widget _buildStatCard(BuildContext context, String statName, int statValue) {
     return Expanded(
       child: Card(
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 8.0),
+          padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 4.0),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -185,10 +233,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ),
               ),
               const SizedBox(height: 5),
-              Text(
-                '$statValue',
-                style: Theme.of(context).textTheme.headlineSmall,
-              ),
+              Text('$statValue', style: Theme.of(context).textTheme.headlineSmall),
             ],
           ),
         ),

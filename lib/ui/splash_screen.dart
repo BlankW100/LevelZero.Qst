@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/local_storage.dart';
-import 'dashboard_screen.dart'; // Import the DashboardScreen
+import 'dashboard_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -10,8 +10,6 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> {
-  final StorageService _storage = StorageService();
-
   @override
   void initState() {
     super.initState();
@@ -19,19 +17,20 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   Future<void> _initApp() async {
-    // Initialize storage service
-    await _storage.init();
+    // 1. Initialize the hard drive storage
+    final storage = StorageService();
+    await storage.init();
 
-    // Artificial delay for splash screen visibility
-    await Future.delayed(const Duration(seconds: 1, milliseconds: 500));
+    // 2. Force the app to wait for 2 seconds so the user can read the screen
+    await Future.delayed(const Duration(seconds: 2));
 
-    // Navigate to DashboardScreen
-    if (mounted) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const DashboardScreen()),
-      );
-    }
+    if (!mounted) return;
+    
+    // 3. Delete the loading screen from memory and push the Dashboard
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => const DashboardScreen()),
+    );
   }
 
   @override
@@ -44,14 +43,14 @@ class _SplashScreenState extends State<SplashScreen> {
             Text(
               "SYSTEM INITIALIZING...",
               style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    color: Theme.of(context).colorScheme.primary, // Neon blue text
+                    color: Theme.of(context).colorScheme.primary, // Neon Blue
                     fontWeight: FontWeight.bold,
-                    letterSpacing: 2.0, // For a glowing effect
+                    letterSpacing: 2.0, // Spaces out the letters for a sci-fi feel
                   ),
             ),
             const SizedBox(height: 30),
             CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(Theme.of(context).colorScheme.secondary), // Glowing green indicator
+              color: Theme.of(context).colorScheme.secondary, // Glowing Green
             ),
           ],
         ),
