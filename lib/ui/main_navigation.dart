@@ -14,7 +14,6 @@ class _MainNavigationState extends State<MainNavigation> {
   int _currentIndex = 0;
 
   // The Master List of Screens!
-  // We put placeholders for the screens we haven't built yet.
   final List<Widget> _screens = [
     const DashboardScreen(),
     const Center(child: Text('Quest Screen (Coming Soon)', style: TextStyle(color: Colors.white, fontSize: 20))),
@@ -27,11 +26,9 @@ class _MainNavigationState extends State<MainNavigation> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // IndexedStack keeps all screens alive in memory so they don't reload!
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _screens,
-      ),
+      // FIX: Removed IndexedStack! 
+      // Now, swapping tabs forces the screen to grab your freshest Data/Coins!
+      body: _screens[_currentIndex],
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed, // Forces all 6 icons to stay visible
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,

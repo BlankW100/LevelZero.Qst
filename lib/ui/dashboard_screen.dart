@@ -33,7 +33,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     List<Quest> loadedQuests = _storage.loadQuests();
 
-    // The new Quest Engine!
     if (loadedQuests.isEmpty) {
       loadedQuests = QuestList.generateDailyQuests(loadedProfile);
       await _storage.saveQuests(loadedQuests);
@@ -45,53 +44,57 @@ class _DashboardScreenState extends State<DashboardScreen> {
     });
   }
 
-  // --- RESTORED: THE REWARD ENGINE ---
+  // --- NEW MATH ENGINE: Calculates 10 to 50 coins based on difficulty! ---
+  int _calculateCoinReward(int xpReward) {
+    int coins = (xpReward / 2.5).toInt();
+    if (coins < 10) coins = 10; // Floor limit
+    if (coins > 50) coins = 50; // Hard cap
+    return coins;
+  }
+
+  // --- UPGRADED REWARD ENGINE: Now deposits Coins directly into your Vault ---
   void _completeQuest(int index) {
     if (_quests[index].isCompleted) return; 
 
     setState(() {
       _quests[index].isCompleted = true;
       
-      // 1. Base Rewards
       int earnedXp = _quests[index].xpReward;
-      int statBoost = 1; // Default +1 stat for doing the task
+      int earnedCoins = _calculateCoinReward(earnedXp); // Roll for coins
+      int statBoost = 1; 
       String statName = _quests[index].statFocus.name.toUpperCase();
       
-      // 2. Class Synergy Check!
       bool isSynergy = false;
-      
-      // Matches the Class to the Quest Type
       if (_profile!.playerClass.name == 'warrior' && _quests[index].statFocus == StatFocus.strength) isSynergy = true;
       if (_profile!.playerClass.name == 'assassin' && _quests[index].statFocus == StatFocus.agility) isSynergy = true;
       if (_profile!.playerClass.name == 'mage' && _quests[index].statFocus == StatFocus.intelligence) isSynergy = true;
       if (_profile!.playerClass.name == 'tank' && _quests[index].statFocus == StatFocus.endurance) isSynergy = true;
 
-      // 3. Apply the Synergy Multiplier!
+      // Synergy boosts XP, Stats, AND Gold!
       if (isSynergy) {
-        statBoost = 2; // Double stat gain!
-        earnedXp = (earnedXp * 1.5).toInt(); // 1.5x XP Boost!
+        statBoost = 2; 
+        earnedXp = (earnedXp * 1.5).toInt(); 
+        earnedCoins = (earnedCoins * 1.5).toInt(); // Extra money for playing your class!
       }
 
-      // 4. Grant the XP
+      // Add everything to your profile
       _profile!.currentXp += earnedXp;
+      _profile!.coins += earnedCoins; // Wallet goes up!
 
-      // 5. Grant the specific Stat Boost
-switch (_quests[index].statFocus) {
+      switch (_quests[index].statFocus) {
         case StatFocus.strength: _profile!.strength += statBoost; break;
         case StatFocus.agility: _profile!.agility += statBoost; break;
         case StatFocus.intelligence: _profile!.intelligence += statBoost; break;
         case StatFocus.endurance: _profile!.endurance += statBoost; break;
-        case StatFocus.general: break; 
+        case StatFocus.general: break;
       }
 
-      // 6. Check for Level Up (Keep the original logic here!)
       bool leveledUp = false;
       while (_profile!.currentXp >= _profile!.xpToNextLevel) {
         _profile!.currentXp -= _profile!.xpToNextLevel; 
         _profile!.level++;
         _profile!.xpToNextLevel = (_profile!.xpToNextLevel * 1.5).toInt(); 
         
-        // Every level up still gives +1 to all stats
         _profile!.strength += 1;
         _profile!.agility += 1;
         _profile!.intelligence += 1;
@@ -100,10 +103,10 @@ switch (_quests[index].statFocus) {
         leveledUp = true;
       }
 
-      // 7. Show a visual System Notification at the bottom of the screen!
+      // Shows exactly how much gold you just made
       String message = isSynergy 
-          ? "CLASS SYNERGY! +$statBoost $statName | +$earnedXp XP" 
-          : "Quest Complete! +$statBoost $statName | +$earnedXp XP";
+          ? "SYNERGY! +$statBoost $statName | +$earnedXp XP | +$earnedCoins G" 
+          : "Quest Complete! +$statBoost $statName | +$earnedXp XP | +$earnedCoins G";
       
       if (leveledUp) message += " \nLEVEL UP!";
 
@@ -116,7 +119,6 @@ switch (_quests[index].statFocus) {
       );
     });
 
-    // Save everything to the hard drive
     _storage.saveProfile(_profile!);
     _storage.saveQuests(_quests);
   }
@@ -249,8 +251,9 @@ switch (_quests[index].statFocus) {
                                     ),
                                   ),
                                   const SizedBox(height: 4),
+                                  // --- UPGRADED: Card now shows exactly how much Gold it pays! ---
                                   Text(
-                                    "Reward: ${quest.xpReward} XP [${quest.statFocus.name.toUpperCase()}]",
+                                    "Reward: ${quest.xpReward} XP | +${_calculateCoinReward(quest.xpReward)} G [${quest.statFocus.name.toUpperCase()}]",
                                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                                       color: Theme.of(context).colorScheme.secondary,
                                     ),
