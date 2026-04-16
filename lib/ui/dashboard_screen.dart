@@ -51,21 +51,72 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     setState(() {
       _quests[index].isCompleted = true;
-      _profile!.currentXp += _quests[index].xpReward;
+      
+      // 1. Base Rewards
+      int earnedXp = _quests[index].xpReward;
+      int statBoost = 1; // Default +1 stat for doing the task
+      String statName = _quests[index].statFocus.name.toUpperCase();
+      
+      // 2. Class Synergy Check!
+      bool isSynergy = false;
+      
+      // Matches the Class to the Quest Type
+      if (_profile!.playerClass.name == 'warrior' && _quests[index].statFocus == StatFocus.strength) isSynergy = true;
+      if (_profile!.playerClass.name == 'assassin' && _quests[index].statFocus == StatFocus.agility) isSynergy = true;
+      if (_profile!.playerClass.name == 'mage' && _quests[index].statFocus == StatFocus.intelligence) isSynergy = true;
+      if (_profile!.playerClass.name == 'tank' && _quests[index].statFocus == StatFocus.endurance) isSynergy = true;
 
-      // Level Up Logic
+      // 3. Apply the Synergy Multiplier!
+      if (isSynergy) {
+        statBoost = 2; // Double stat gain!
+        earnedXp = (earnedXp * 1.5).toInt(); // 1.5x XP Boost!
+      }
+
+      // 4. Grant the XP
+      _profile!.currentXp += earnedXp;
+
+      // 5. Grant the specific Stat Boost
+switch (_quests[index].statFocus) {
+        case StatFocus.strength: _profile!.strength += statBoost; break;
+        case StatFocus.agility: _profile!.agility += statBoost; break;
+        case StatFocus.intelligence: _profile!.intelligence += statBoost; break;
+        case StatFocus.endurance: _profile!.endurance += statBoost; break;
+        case StatFocus.general: break; 
+      }
+
+      // 6. Check for Level Up (Keep the original logic here!)
+      bool leveledUp = false;
       while (_profile!.currentXp >= _profile!.xpToNextLevel) {
         _profile!.currentXp -= _profile!.xpToNextLevel; 
         _profile!.level++;
         _profile!.xpToNextLevel = (_profile!.xpToNextLevel * 1.5).toInt(); 
         
+        // Every level up still gives +1 to all stats
         _profile!.strength += 1;
         _profile!.agility += 1;
         _profile!.intelligence += 1;
         _profile!.endurance += 1;
+        
+        leveledUp = true;
       }
+
+      // 7. Show a visual System Notification at the bottom of the screen!
+      String message = isSynergy 
+          ? "CLASS SYNERGY! +$statBoost $statName | +$earnedXp XP" 
+          : "Quest Complete! +$statBoost $statName | +$earnedXp XP";
+      
+      if (leveledUp) message += " \nLEVEL UP!";
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black)),
+          backgroundColor: isSynergy ? Colors.amber : Theme.of(context).colorScheme.primary,
+          duration: const Duration(seconds: 3),
+        ),
+      );
     });
 
+    // Save everything to the hard drive
     _storage.saveProfile(_profile!);
     _storage.saveQuests(_quests);
   }
