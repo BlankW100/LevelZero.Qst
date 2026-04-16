@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/user_profile.dart';
 import '../models/quest.dart';
 import '../services/local_storage.dart';
+import '../data/quest_list.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -13,13 +14,12 @@ class DashboardScreen extends StatefulWidget {
 class _DashboardScreenState extends State<DashboardScreen> {
   final StorageService _storage = StorageService();
   HunterProfile? _profile;
-  List<Quest> _quests = []; // NEW: Holds your active quests
-  int _currentTabIndex = 0;
+  List<Quest> _quests = []; 
 
   @override
   void initState() {
     super.initState();
-    _loadData(); // Updated to load both profile and quests
+    _loadData(); 
   }
 
   Future<void> _loadData() async {
@@ -33,9 +33,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     List<Quest> loadedQuests = _storage.loadQuests();
 
-    // If there are no quests (like on first boot), generate the starter pack!
+    // The new Quest Engine!
     if (loadedQuests.isEmpty) {
-      loadedQuests = _generateStarterQuests(loadedProfile);
+      loadedQuests = QuestList.generateDailyQuests(loadedProfile);
       await _storage.saveQuests(loadedQuests);
     }
 
@@ -45,77 +45,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
     });
   }
 
-  // --- THE QUEST GENERATOR ---
-  List<Quest> _generateStarterQuests(HunterProfile profile) {
-    
-    // Pool of physical tasks (STR, AGI, END)
-    List<Map<String, dynamic>> physicalPool = [
-      {'title': '100 Push-ups', 'stat': StatFocus.strength, 'diff': QuestDifficulty.rankD, 'amt': 100},
-      {'title': '10km Run', 'stat': StatFocus.agility, 'diff': QuestDifficulty.rankC, 'amt': 10},
-      {'title': 'Plank for 5 Mins', 'stat': StatFocus.endurance, 'diff': QuestDifficulty.rankD, 'amt': 5},
-      {'title': '100 Squats', 'stat': StatFocus.strength, 'diff': QuestDifficulty.rankD, 'amt': 100},
-      {'title': 'Shadow Boxing', 'stat': StatFocus.agility, 'diff': QuestDifficulty.rankE, 'amt': 15},
-    ];
-
-    physicalPool.shuffle(); // Mix them up
-    List<Quest> newQuests = [];
-
-    // 1. Pick 3 random physical quests
-    for (int i = 0; i < 3; i++) {
-      var qData = physicalPool[i];
-      newQuests.add(Quest(
-        id: 'phys_$i',
-        title: qData['title'] as String,
-        statFocus: qData['stat'] as StatFocus,
-        difficulty: qData['diff'] as QuestDifficulty,
-        amount: qData['amt'] as int,
-        xpReward: Quest.calculateDynamicXP(
-          difficulty: qData['diff'] as QuestDifficulty,
-          amount: qData['amt'] as int,
-          statFocus: qData['stat'] as StatFocus,
-          playerClass: profile.playerClass,
-        ),
-      ));
-    }
-
-    // 2. The Fixed Intelligence Quest
-    newQuests.add(Quest(
-      id: 'int_fixed_1',
-      title: 'Develop Formula_L1ve Logic',
-      description: 'Process telemetry data at 3.7 Hz.',
-      statFocus: StatFocus.intelligence,
-      difficulty: QuestDifficulty.rankB,
-      amount: 60, // 60 minutes of coding
-      xpReward: Quest.calculateDynamicXP(
-        difficulty: QuestDifficulty.rankB,
-        amount: 60,
-        statFocus: StatFocus.intelligence,
-        playerClass: profile.playerClass,
-      ),
-    ));
-
-    return newQuests;
-  }
-
-  // --- THE REWARD ENGINE ---
+  // --- RESTORED: THE REWARD ENGINE ---
   void _completeQuest(int index) {
-    if (_quests[index].isCompleted) return; // Prevent double-clicking
+    if (_quests[index].isCompleted) return; 
 
     setState(() {
-      // 1. Mark as complete
       _quests[index].isCompleted = true;
-      
-      // 2. Grant XP
       _profile!.currentXp += _quests[index].xpReward;
 
-      // 3. Level Up Logic!
+      // Level Up Logic
       while (_profile!.currentXp >= _profile!.xpToNextLevel) {
-        _profile!.currentXp -= _profile!.xpToNextLevel; // Carry over excess XP
+        _profile!.currentXp -= _profile!.xpToNextLevel; 
         _profile!.level++;
-        // Make the next level 50% harder to reach
         _profile!.xpToNextLevel = (_profile!.xpToNextLevel * 1.5).toInt(); 
         
-        // Minor stat boost on level up
         _profile!.strength += 1;
         _profile!.agility += 1;
         _profile!.intelligence += 1;
@@ -123,7 +66,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
       }
     });
 
-    // 4. Save everything to the hard drive immediately
     _storage.saveProfile(_profile!);
     _storage.saveQuests(_quests);
   }
@@ -155,7 +97,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           children: [
             const Icon(Icons.account_circle, size: 30),
             const SizedBox(width: 8),
-            Text(_profile!.name), // Now shows your actual chosen Hunter Name!
+            Text(_profile!.name), 
           ],
         ),
         centerTitle: false,
@@ -227,7 +169,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
           const SizedBox(height: 10),
           
-          // --- THE QUEST LIST UI ---
           Expanded(
             child: _quests.isEmpty 
               ? const Center(child: Text("No quests assigned."))
@@ -237,7 +178,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   itemBuilder: (context, index) {
                     final quest = _quests[index];
                     return Card(
-                      // Make completed cards look faded
                       color: quest.isCompleted 
                           ? Theme.of(context).colorScheme.surface.withValues(alpha: 0.3) 
                           : Theme.of(context).cardColor,
@@ -253,7 +193,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                   Text(
                                     quest.title,
                                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                      // Strikethrough text if completed!
                                       decoration: quest.isCompleted ? TextDecoration.lineThrough : null,
                                       color: quest.isCompleted ? Colors.grey : Colors.white,
                                     ),
@@ -270,7 +209,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             ),
                             Checkbox(
                               value: quest.isCompleted,
-                              // Disable the checkbox if it's already completed
                               onChanged: quest.isCompleted 
                                   ? null 
                                   : (bool? value) {
@@ -297,30 +235,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
         ],
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        selectedItemColor: Theme.of(context).colorScheme.primary,
-        unselectedItemColor: Colors.grey,
-        selectedFontSize: 10,
-        unselectedFontSize: 10,
-        currentIndex: _currentTabIndex,
-        onTap: (index) {
-          setState(() {
-            _currentTabIndex = index;
-          });
-        },
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.assignment), label: 'Quest'),
-          BottomNavigationBarItem(icon: Icon(Icons.bar_chart), label: 'Stats'),
-          BottomNavigationBarItem(icon: Icon(Icons.shopping_cart), label: 'Shop'),
-          BottomNavigationBarItem(icon: Icon(Icons.backpack), label: 'Inv'),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
-        ],
-      ),
-    );
-  }
+    ); 
+  } 
 
   Widget _buildStatCard(BuildContext context, String statName, int statValue) {
     return Expanded(
