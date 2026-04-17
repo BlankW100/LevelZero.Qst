@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dashboard_screen.dart';
 import 'shop_screen.dart';
 import 'inventory_screen.dart';
+import 'stat_screen.dart';
 
 class MainNavigation extends StatefulWidget {
   const MainNavigation({super.key});
@@ -14,10 +15,10 @@ class _MainNavigationState extends State<MainNavigation> {
   int _currentIndex = 0;
 
   // The Master List of Screens!
-  final List<Widget> _screens = [
+final List<Widget> _screens = [
     const DashboardScreen(),
     const Center(child: Text('Quest Screen (Coming Soon)', style: TextStyle(color: Colors.white, fontSize: 20))),
-    const Center(child: Text('Stats Screen (Coming Soon)', style: TextStyle(color: Colors.white, fontSize: 20))),
+    const StatsScreen(), // <-- WE CONNECTED IT HERE!
     const ShopScreen(),
     const InventoryScreen(),
     const Center(child: Text('Profile Screen (Coming Soon)', style: TextStyle(color: Colors.white, fontSize: 20))),
