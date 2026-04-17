@@ -40,11 +40,12 @@ class _InventoryScreenState extends State<InventoryScreen> {
         case 'Material': return item.category == ItemCategory.material;
         case 'Once-Use': return item.category == ItemCategory.consumable;
         case 'Other': return item.category == ItemCategory.other;
-        default: return false;
       }
+      return false; 
     }).toList();
   }
 
+  // FIXED LINTER WARNING: Removed the unreachable 'default'
   Color _getRarityColor(ItemRarity rarity) {
     switch (rarity) {
       case ItemRarity.common: return const Color(0xFFB0B0B0);
@@ -55,7 +56,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
     }
   }
 
-  // --- NEW: Interactive Popup Logic ---
   void _showItemDetails(Item item) {
     showDialog(
       context: context,
@@ -79,21 +79,18 @@ class _InventoryScreenState extends State<InventoryScreen> {
               Text("Category: ${item.category.name.toUpperCase()}", style: const TextStyle(color: Colors.grey, fontSize: 12)),
               Text("Rarity: ${item.rarity.name.toUpperCase()}", style: const TextStyle(color: Colors.grey, fontSize: 12)),
               
-              // Only show stats if the item actually has them!
               if (item.buffStat != null) ...[
                 const SizedBox(height: 12),
                 const Text("--- SYSTEM BONUSES ---", style: TextStyle(color: Colors.white38, fontSize: 10, letterSpacing: 1.5)),
                 const SizedBox(height: 4),
                 Text("Target Stat: ${item.buffStat}", style: const TextStyle(color: Colors.amber, fontSize: 13, fontWeight: FontWeight.bold)),
                 Text("In-Game Boost: +${item.inGameBoost}", style: const TextStyle(color: Colors.amber, fontSize: 13)),
-                Text("Daily Reduction: -${item.dailyReduction}", style: const TextStyle(color: Colors.amber, fontSize: 13)),
               ],
               const SizedBox(height: 16),
               Text("Quantity Owned: ${item.quantity}", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
             ],
           ),
           actions: [
-            // DELETE BUTTON
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop();
@@ -101,7 +98,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
               },
               child: const Text("DELETE", style: TextStyle(color: Colors.redAccent)),
             ),
-            // USE / EQUIP BUTTON
             ElevatedButton(
               onPressed: () {
                 Navigator.of(context).pop();
@@ -119,24 +115,55 @@ class _InventoryScreenState extends State<InventoryScreen> {
     );
   }
 
+  // --- UPGRADED AND BULLETPROOF EQUIP LOGIC ---
   void _useItem(Item item) {
     setState(() {
       if (item.category == ItemCategory.consumable) {
-        // Consume the item
         if (item.quantity > 1) {
           item.quantity--;
         } else {
           _profile!.inventory.remove(item);
         }
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Consumed ${item.name}. System stats slightly restored."), backgroundColor: Theme.of(context).colorScheme.primary));
-      } else if (item.category == ItemCategory.equipment) {
-        // Equipment logic (Placeholder until we build the equip screen!)
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("System Error: Equipment Slot module not yet installed."), backgroundColor: Colors.redAccent));
-      } else {
+      } 
+      else if (item.category == ItemCategory.equipment) {
+        
+        // 1. Check if the item has a valid slot!
+        if (item.equipSlot != null) {
+          _profile!.inventory.remove(item); 
+
+          if (_profile!.equippedGear.containsKey(item.equipSlot)) {
+            Item oldItem = _profile!.equippedGear[item.equipSlot]!;
+            _profile!.inventory.add(oldItem); 
+            _applyItemStats(oldItem, reverse: true); 
+          }
+
+          _profile!.equippedGear[item.equipSlot!] = item;
+          _applyItemStats(item, reverse: false);
+          _profile!.updateHpMp(); 
+
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Equipped ${item.name}!"), backgroundColor: Colors.amber));
+        } else {
+          // 2. Catch OLD "Ghost" items from previous save files!
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("System Error: Corrupt/Outdated Item Data. Please discard."), backgroundColor: Colors.redAccent));
+        }
+      } 
+      else {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("This item cannot be used directly."), backgroundColor: Colors.grey));
       }
     });
     _storage.saveProfile(_profile!);
+  }
+
+  void _applyItemStats(Item item, {required bool reverse}) {
+    int multiplier = reverse ? -1 : 1;
+    int boost = item.inGameBoost * multiplier;
+    switch (item.buffStat) {
+      case 'STR': _profile!.strength += boost; break;
+      case 'AGI': _profile!.agility += boost; break;
+      case 'INT': _profile!.intelligence += boost; break;
+      case 'END': _profile!.endurance += boost; break;
+    }
   }
 
   void _deleteItem(Item item) {
@@ -264,7 +291,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
                 if (isSlotOccupied) {
                   final item = filteredItems[index];
                   
-                  // --- NEW: Wrapped in a GestureDetector so it opens the Dialog! ---
                   return GestureDetector(
                     onTap: () => _showItemDetails(item),
                     child: Container(
@@ -279,14 +305,14 @@ class _InventoryScreenState extends State<InventoryScreen> {
                             child: Padding(
                               padding: const EdgeInsets.all(2.0),
                               child: Text(
-                                item.name.toUpperCase(), // Display actual item name!
+                                item.name.toUpperCase(), 
                                 textAlign: TextAlign.center,
                                 maxLines: 3,
                                 overflow: TextOverflow.ellipsis,
                                 style: const TextStyle(
                                   color: Colors.black, 
                                   fontWeight: FontWeight.w900, 
-                                  fontSize: 8, // Scaled down slightly to fit names better
+                                  fontSize: 8, 
                                   fontFamily: 'Courier', 
                                   height: 1.1, 
                                 ),
