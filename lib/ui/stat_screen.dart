@@ -2,6 +2,7 @@ import 'dart:math' show max;
 import 'package:flutter/material.dart';
 import '../models/user_profile.dart';
 import '../services/local_storage.dart';
+import '../models/item.dart';
 
 class StatsScreen extends StatefulWidget {
   const StatsScreen({super.key});
@@ -189,24 +190,60 @@ class _StatsScreenState extends State<StatsScreen> {
   }
 
   // Helper Widget for the Empty Equipment Slots
-  Widget _buildEquipSlot(String label, IconData defaultIcon) {
-    return Column(
-      children: [
-        Container(
-          width: 55, height: 55,
-          decoration: BoxDecoration(
-            color: Colors.black45,
-            border: Border.all(color: Colors.brown[600]!, width: 1.5),
-            borderRadius: BorderRadius.circular(8),
+  Widget _buildEquipSlot(String slot, IconData defaultIcon) {
+    bool isEquipped = _profile!.equippedGear.containsKey(slot);
+    Item? item = isEquipped ? _profile!.equippedGear[slot] : null;
+
+    return GestureDetector(
+      onTap: () {
+        if (isEquipped) {
+          // --- UNEQUIP LOGIC ---
+          if (_profile!.inventory.length >= _profile!.inventoryCapacity) {
+             ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Inventory Full!")));
+             return;
+          }
+          setState(() {
+            _profile!.inventory.add(item!);
+            _profile!.equippedGear.remove(slot);
+            
+            // Reverse Stats
+            int boost = item.inGameBoost;
+            switch (item.buffStat) {
+              case 'STR': _profile!.strength -= boost; break;
+              case 'AGI': _profile!.agility -= boost; break;
+              case 'INT': _profile!.intelligence -= boost; break;
+              case 'END': _profile!.endurance -= boost; break;
+            }
+            _profile!.updateHpMp();
+          });
+          _storage.saveProfile(_profile!);
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Unequipped ${item!.name}.")));
+        }
+      },
+      child: Column(
+        children: [
+          Container(
+            width: 55, height: 55,
+            decoration: BoxDecoration(
+              // If equipped, glow gold! Otherwise stay grey.
+              color: isEquipped ? Colors.amber.withValues(alpha: 0.2) : Colors.black45,
+              border: Border.all(color: isEquipped ? Colors.amber : Colors.brown[600]!, width: 1.5),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: isEquipped 
+                ? const Icon(Icons.star, color: Colors.amber, size: 28) // Replace with a cooler icon if you want!
+                : Icon(defaultIcon, color: Colors.white24, size: 28),
           ),
-          child: Icon(defaultIcon, color: Colors.white24, size: 28),
-        ),
-        const SizedBox(height: 4),
-        Text(label, style: const TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold)),
-      ],
+          const SizedBox(height: 4),
+          // Show the Item Name or the Empty Slot name
+          Text(isEquipped ? item!.name.split(' ').first : slot, 
+            style: TextStyle(fontSize: 10, color: isEquipped ? Colors.amber : Colors.grey, fontWeight: FontWeight.bold),
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
     );
   }
-
   // Helper Widget for the Stat Blocks
   Widget _buildStatBox(String label, int value) {
     return Container(

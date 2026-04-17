@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../models/user_profile.dart';
-import '../models/quest.dart';
 import '../services/local_storage.dart';
 import 'dashboard_screen.dart'; // Required to navigate here after setup
 
