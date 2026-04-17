@@ -115,44 +115,120 @@ class _InventoryScreenState extends State<InventoryScreen> {
     );
   }
 
-  // --- UPGRADED AND BULLETPROOF EQUIP LOGIC ---
+ // --- UPGRADED EQUIP LOGIC: Added the Swap Comparison ---
   void _useItem(Item item) {
-    setState(() {
-      if (item.category == ItemCategory.consumable) {
+    if (item.category == ItemCategory.consumable) {
+      setState(() {
         if (item.quantity > 1) {
           item.quantity--;
         } else {
           _profile!.inventory.remove(item);
         }
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Consumed ${item.name}. System stats slightly restored."), backgroundColor: Theme.of(context).colorScheme.primary));
-      } 
-      else if (item.category == ItemCategory.equipment) {
-        
-        // 1. Check if the item has a valid slot!
-        if (item.equipSlot != null) {
-          _profile!.inventory.remove(item); 
-
-          if (_profile!.equippedGear.containsKey(item.equipSlot)) {
-            Item oldItem = _profile!.equippedGear[item.equipSlot]!;
-            _profile!.inventory.add(oldItem); 
-            _applyItemStats(oldItem, reverse: true); 
-          }
-
-          _profile!.equippedGear[item.equipSlot!] = item;
-          _applyItemStats(item, reverse: false);
-          _profile!.updateHpMp(); 
-
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Equipped ${item.name}!"), backgroundColor: Colors.amber));
+      });
+      _storage.saveProfile(_profile!);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Consumed ${item.name}."), backgroundColor: Theme.of(context).colorScheme.primary));
+    } 
+    else if (item.category == ItemCategory.equipment) {
+      if (item.equipSlot != null) {
+        // CHECK IF SLOT IS TAKEN!
+        if (_profile!.equippedGear.containsKey(item.equipSlot)) {
+          Item oldItem = _profile!.equippedGear[item.equipSlot]!;
+          _showSwapDialog(oldItem, item); // Trigger the comparison UI!
         } else {
-          // 2. Catch OLD "Ghost" items from previous save files!
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("System Error: Corrupt/Outdated Item Data. Please discard."), backgroundColor: Colors.redAccent));
+          _performEquip(item); // Slot is empty, just equip it!
         }
-      } 
-      else {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("This item cannot be used directly."), backgroundColor: Colors.grey));
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("System Error: Corrupt Item Data."), backgroundColor: Colors.redAccent));
       }
+    }
+  }
+
+  // --- NEW: The Side-By-Side Comparison UI ---
+  void _showSwapDialog(Item oldItem, Item newItem) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: Theme.of(context).colorScheme.surface,
+          title: const Text("EQUIPMENT CONFLICT", style: TextStyle(color: Colors.amber, fontWeight: FontWeight.bold, fontSize: 18), textAlign: TextAlign.center),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text("Replace currently equipped gear?", style: TextStyle(color: Colors.white70, fontSize: 14)),
+              const SizedBox(height: 16),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // OLD ITEM
+                  Expanded(
+                    child: Column(
+                      children: [
+                        Text("CURRENT", style: TextStyle(color: Colors.grey[500], fontSize: 10, fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 4),
+                        Text(oldItem.name, style: TextStyle(color: _getRarityColor(oldItem.rarity), fontWeight: FontWeight.bold, fontSize: 12), textAlign: TextAlign.center),
+                        const SizedBox(height: 8),
+                        Text("+${oldItem.inGameBoost} ${oldItem.buffStat ?? ''}", style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                      ],
+                    ),
+                  ),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 8.0),
+                    child: Icon(Icons.compare_arrows, color: Colors.grey, size: 24),
+                  ),
+                  // NEW ITEM
+                  Expanded(
+                    child: Column(
+                      children: [
+                        const Text("NEW", style: TextStyle(color: Colors.greenAccent, fontSize: 10, fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 4),
+                        Text(newItem.name, style: TextStyle(color: _getRarityColor(newItem.rarity), fontWeight: FontWeight.bold, fontSize: 12), textAlign: TextAlign.center),
+                        const SizedBox(height: 8),
+                        Text("+${newItem.inGameBoost} ${newItem.buffStat ?? ''}", style: const TextStyle(color: Colors.greenAccent, fontSize: 12, fontWeight: FontWeight.bold)),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text("CANCEL", style: TextStyle(color: Colors.grey)),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                _performEquip(newItem, oldItem: oldItem);
+              },
+              style: ElevatedButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.primary),
+              child: const Text("SWAP", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // --- THE MATH ENGINE FOR SWAPPING ---
+  void _performEquip(Item newItem, {Item? oldItem}) {
+    setState(() {
+      _profile!.inventory.remove(newItem); 
+
+      // If there was an old item, throw it back in the bag and remove its stats
+      if (oldItem != null) {
+        _profile!.inventory.add(oldItem);
+        _applyItemStats(oldItem, reverse: true);
+      }
+
+      // Put on the new item and add its stats
+      _profile!.equippedGear[newItem.equipSlot!] = newItem;
+      _applyItemStats(newItem, reverse: false);
+      _profile!.updateHpMp(); 
     });
+    
     _storage.saveProfile(_profile!);
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Equipped ${newItem.name}!"), backgroundColor: Colors.amber));
   }
 
   void _applyItemStats(Item item, {required bool reverse}) {
