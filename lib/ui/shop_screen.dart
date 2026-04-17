@@ -105,7 +105,6 @@ class _ShopScreenState extends State<ShopScreen> {
         category: ItemCategory.consumable, rarity: ItemRarity.common
       ));
       
-      // Wrapped in curly braces to satisfy linter
       if (isHp) {
         _hpBought++;
       } else {
@@ -120,7 +119,6 @@ class _ShopScreenState extends State<ShopScreen> {
   void _buyRandomItem(int index) {
     ShopProduct product = _dailyRandoms[index];
     
-    // Wrapped in curly braces
     if (product.isSoldOut) {
       return;
     }
@@ -246,9 +244,13 @@ class _ShopScreenState extends State<ShopScreen> {
                           border: Border.all(color: Colors.black, width: 2),
                         ),
                         alignment: Alignment.center,
+                        padding: const EdgeInsets.all(2.0),
+                        // --- FIX: Now displays the actual item name inside the box! ---
                         child: Text(
-                          "${item.rarity.name.toUpperCase()}\nITEM",
+                          item.name.toUpperCase(),
                           textAlign: TextAlign.center,
+                          maxLines: 3,
+                          overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
                             color: Colors.black, 
                             fontWeight: FontWeight.w900, 
@@ -303,10 +305,14 @@ class _ShopScreenState extends State<ShopScreen> {
               border: Border.all(color: Colors.black, width: 2),
             ),
             alignment: Alignment.center,
-            child: const Text(
-              "COMMON\nITEM",
+            padding: const EdgeInsets.all(2.0),
+            // --- FIX: Now displays the actual item name inside the box! ---
+            child: Text(
+              name.toUpperCase(),
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.black, fontWeight: FontWeight.w900, fontSize: 8, fontFamily: 'Courier', height: 1.1),
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w900, fontSize: 8, fontFamily: 'Courier', height: 1.1),
             ),
           ),
           title: Text(name, style: const TextStyle(fontWeight: FontWeight.bold)),

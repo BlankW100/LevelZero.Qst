@@ -55,13 +55,100 @@ class _InventoryScreenState extends State<InventoryScreen> {
     }
   }
 
-  String _getShortCategoryName(ItemCategory category) {
-    switch (category) {
-      case ItemCategory.equipment: return "EQUIP";
-      case ItemCategory.material: return "MAT";
-      case ItemCategory.consumable: return "ITEM";
-      case ItemCategory.other: return "MISC";
-    }
+  // --- NEW: Interactive Popup Logic ---
+  void _showItemDetails(Item item) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: Theme.of(context).colorScheme.surface,
+          shape: RoundedRectangleBorder(
+            side: BorderSide(color: _getRarityColor(item.rarity), width: 2),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          title: Text(
+            item.name,
+            style: TextStyle(color: _getRarityColor(item.rarity), fontWeight: FontWeight.bold),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(item.description, style: const TextStyle(color: Colors.white70)),
+              const SizedBox(height: 16),
+              Text("Category: ${item.category.name.toUpperCase()}", style: const TextStyle(color: Colors.grey, fontSize: 12)),
+              Text("Rarity: ${item.rarity.name.toUpperCase()}", style: const TextStyle(color: Colors.grey, fontSize: 12)),
+              
+              // Only show stats if the item actually has them!
+              if (item.buffStat != null) ...[
+                const SizedBox(height: 12),
+                const Text("--- SYSTEM BONUSES ---", style: TextStyle(color: Colors.white38, fontSize: 10, letterSpacing: 1.5)),
+                const SizedBox(height: 4),
+                Text("Target Stat: ${item.buffStat}", style: const TextStyle(color: Colors.amber, fontSize: 13, fontWeight: FontWeight.bold)),
+                Text("In-Game Boost: +${item.inGameBoost}", style: const TextStyle(color: Colors.amber, fontSize: 13)),
+                Text("Daily Reduction: -${item.dailyReduction}", style: const TextStyle(color: Colors.amber, fontSize: 13)),
+              ],
+              const SizedBox(height: 16),
+              Text("Quantity Owned: ${item.quantity}", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            ],
+          ),
+          actions: [
+            // DELETE BUTTON
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                _deleteItem(item);
+              },
+              child: const Text("DELETE", style: TextStyle(color: Colors.redAccent)),
+            ),
+            // USE / EQUIP BUTTON
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                _useItem(item);
+              },
+              style: ElevatedButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.primary),
+              child: Text(
+                item.category == ItemCategory.equipment ? "EQUIP" : "USE", 
+                style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold)
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _useItem(Item item) {
+    setState(() {
+      if (item.category == ItemCategory.consumable) {
+        // Consume the item
+        if (item.quantity > 1) {
+          item.quantity--;
+        } else {
+          _profile!.inventory.remove(item);
+        }
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Consumed ${item.name}. System stats slightly restored."), backgroundColor: Theme.of(context).colorScheme.primary));
+      } else if (item.category == ItemCategory.equipment) {
+        // Equipment logic (Placeholder until we build the equip screen!)
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("System Error: Equipment Slot module not yet installed."), backgroundColor: Colors.redAccent));
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("This item cannot be used directly."), backgroundColor: Colors.grey));
+      }
+    });
+    _storage.saveProfile(_profile!);
+  }
+
+  void _deleteItem(Item item) {
+    setState(() {
+      if (item.quantity > 1) {
+        item.quantity--;
+      } else {
+        _profile!.inventory.remove(item);
+      }
+    });
+    _storage.saveProfile(_profile!);
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Discarded ${item.name}."), backgroundColor: Colors.redAccent));
   }
 
   @override
@@ -80,7 +167,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
       ),
       body: Column(
         children: [
-          // Top Header
           Container(
             margin: const EdgeInsets.all(16.0),
             padding: const EdgeInsets.all(16.0),
@@ -119,7 +205,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
             ),
           ),
 
-          // Category Tabs
           SizedBox(
             height: 50,
             child: ListView.builder(
@@ -152,7 +237,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
           ),
           const SizedBox(height: 10),
           
-          // Capacity Indicator
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20.0),
             child: Row(
@@ -165,7 +249,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
           ),
           const SizedBox(height: 10),
 
-          // --- THE 5x5 INVENTORY GRID ---
           Expanded(
             child: GridView.builder(
               padding: const EdgeInsets.all(16.0),
@@ -181,36 +264,45 @@ class _InventoryScreenState extends State<InventoryScreen> {
                 if (isSlotOccupied) {
                   final item = filteredItems[index];
                   
-                  return Container(
-                    decoration: BoxDecoration(
-                      color: _getRarityColor(item.rarity),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.black, width: 2), 
-                    ),
-                    child: Stack(
-                      children: [
-                        Center(
-                          child: Text(
-                            "${item.rarity.name.toUpperCase()}\n${_getShortCategoryName(item.category)}",
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              color: Colors.black, 
-                              fontWeight: FontWeight.w900, 
-                              fontSize: 9, 
-                              fontFamily: 'Courier', 
-                              height: 1.1, 
+                  // --- NEW: Wrapped in a GestureDetector so it opens the Dialog! ---
+                  return GestureDetector(
+                    onTap: () => _showItemDetails(item),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: _getRarityColor(item.rarity),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.black, width: 2), 
+                      ),
+                      child: Stack(
+                        children: [
+                          Center(
+                            child: Padding(
+                              padding: const EdgeInsets.all(2.0),
+                              child: Text(
+                                item.name.toUpperCase(), // Display actual item name!
+                                textAlign: TextAlign.center,
+                                maxLines: 3,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: Colors.black, 
+                                  fontWeight: FontWeight.w900, 
+                                  fontSize: 8, // Scaled down slightly to fit names better
+                                  fontFamily: 'Courier', 
+                                  height: 1.1, 
+                                ),
+                              ),
                             ),
                           ),
-                        ),
-                        if (item.quantity > 1)
-                          Positioned(
-                            bottom: 2, right: 4,
-                            child: Text(
-                              "x${item.quantity}",
-                              style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.black),
+                          if (item.quantity > 1)
+                            Positioned(
+                              bottom: 2, right: 4,
+                              child: Text(
+                                "x${item.quantity}",
+                                style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.black),
+                              ),
                             ),
-                          ),
-                      ],
+                        ],
+                      ),
                     ),
                   );
                 } else {
