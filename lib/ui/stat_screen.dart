@@ -28,7 +28,6 @@ class _StatsScreenState extends State<StatsScreen> {
     });
   }
 
-  // --- NEW: Added Rarity Color to Stats Screen ---
   Color _getRarityColor(ItemRarity rarity) {
     switch (rarity) {
       case ItemRarity.common: return const Color(0xFFB0B0B0);
@@ -39,7 +38,6 @@ class _StatsScreenState extends State<StatsScreen> {
     }
   }
 
-  // --- NEW: The Equipped Item Popup Dialog ---
   void _showEquippedItemDetails(Item item, String slot) {
     showDialog(
       context: context,
@@ -216,7 +214,7 @@ class _StatsScreenState extends State<StatsScreen> {
     );
   }
 
-  // --- UPGRADED: Now shows the Retro Box UI when equipped! ---
+  // --- FULLY NULL-SAFE EQUIP SLOT ---
   Widget _buildEquipSlot(String slot, IconData defaultIcon) {
     bool isEquipped = _profile!.equippedGear.containsKey(slot);
     Item? item = isEquipped ? _profile!.equippedGear[slot] : null;
@@ -232,7 +230,7 @@ class _StatsScreenState extends State<StatsScreen> {
           Container(
             width: 55, height: 55,
             decoration: BoxDecoration(
-              // ADDED THE ! HERE -> item!.rarity
+              // Using the ! operator safely because isEquipped acts as our null check
               color: isEquipped ? _getRarityColor(item!.rarity) : Colors.black45,
               border: Border.all(color: isEquipped ? Colors.black : Colors.brown[600]!, width: isEquipped ? 2.0 : 1.5),
               borderRadius: BorderRadius.circular(8),
@@ -251,7 +249,6 @@ class _StatsScreenState extends State<StatsScreen> {
           ),
           const SizedBox(height: 4),
           Text(isEquipped ? item!.name.split(' ').first : slot, 
-            // ADDED THE ! HERE -> item!.rarity
             style: TextStyle(fontSize: 10, color: isEquipped ? _getRarityColor(item!.rarity) : Colors.grey, fontWeight: FontWeight.bold),
             overflow: TextOverflow.ellipsis,
           ),
@@ -280,7 +277,9 @@ class _StatsScreenState extends State<StatsScreen> {
   }
 }
 
-// ... Keep the RadarChartPainter class exactly the same at the bottom of the file!
+// ==========================================
+// THE MATHEMATICAL RADAR CHART ENGINE
+// ==========================================
 class RadarChartPainter extends CustomPainter {
   final int str, agi, intl, end;
   RadarChartPainter({required this.str, required this.agi, required this.intl, required this.end});
