@@ -214,7 +214,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
   void _performEquip(Item newItem, {Item? oldItem}) {
     setState(() {
       _profile!.inventory.remove(newItem); 
-
+      
       // If there was an old item, throw it back in the bag and remove its stats
       if (oldItem != null) {
         _profile!.inventory.add(oldItem);
