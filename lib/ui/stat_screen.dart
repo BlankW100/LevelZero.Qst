@@ -230,7 +230,7 @@ class _StatsScreenState extends State<StatsScreen> {
           Container(
             width: 55, height: 55,
             decoration: BoxDecoration(
-              // Using the ! operator safely because isEquipped acts as our null check
+              // null check
               color: isEquipped ? _getRarityColor(item!.rarity) : Colors.black45,
               border: Border.all(color: isEquipped ? Colors.black : Colors.brown[600]!, width: isEquipped ? 2.0 : 1.5),
               borderRadius: BorderRadius.circular(8),
