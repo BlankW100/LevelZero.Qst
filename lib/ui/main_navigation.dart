@@ -3,6 +3,7 @@ import 'dashboard_screen.dart';
 import 'shop_screen.dart';
 import 'inventory_screen.dart';
 import 'stat_screen.dart';
+import 'quest_screen.dart';
 
 class MainNavigation extends StatefulWidget {
   const MainNavigation({super.key});
@@ -17,7 +18,7 @@ class _MainNavigationState extends State<MainNavigation> {
   // The Master List of Screens!
 final List<Widget> _screens = [
     const DashboardScreen(),
-    const Center(child: Text('Quest Screen (Coming Soon)', style: TextStyle(color: Colors.white, fontSize: 20))),
+    const QuestScreen(),
     const StatsScreen(), // <-- WE CONNECTED IT HERE!
     const ShopScreen(),
     const InventoryScreen(),
