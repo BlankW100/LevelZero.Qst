@@ -19,7 +19,7 @@ class _MainNavigationState extends State<MainNavigation> {
 final List<Widget> _screens = [
     const DashboardScreen(),
     const QuestScreen(),
-    const StatsScreen(), // <-- WE CONNECTED IT HERE!
+    const StatsScreen(),
     const ShopScreen(),
     const InventoryScreen(),
     const Center(child: Text('Profile Screen (Coming Soon)', style: TextStyle(color: Colors.white, fontSize: 20))),
@@ -28,11 +28,9 @@ final List<Widget> _screens = [
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // FIX: Removed IndexedStack! 
-      // Now, swapping tabs forces the screen to grab your freshest Data/Coins!
       body: _screens[_currentIndex],
       bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed, // Forces all 6 icons to stay visible
+        type: BottomNavigationBarType.fixed, 
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         selectedItemColor: Theme.of(context).colorScheme.primary,
         unselectedItemColor: Colors.grey[700],
