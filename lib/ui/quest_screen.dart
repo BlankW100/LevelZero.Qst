@@ -4,7 +4,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/user_profile.dart';
 import '../models/quest.dart';
 import '../services/local_storage.dart';
-import 'combat_screen.dart'; // NEW: Imports our combat engine!
+import 'combat_screen.dart';
+import '../data/monster_data.dart'; // REQUIRED IMPORT FOR DATABASE CONNECTION
 
 class QuestScreen extends StatefulWidget {
   const QuestScreen({super.key});
@@ -39,7 +40,6 @@ class _QuestScreenState extends State<QuestScreen> {
       Map<String, dynamic> decoded = jsonDecode(savedPlan);
       _monthlyPlan = decoded.map((key, value) => MapEntry(key, value.toString()));
     } else {
-      // --- NEW: INITIALIZE SMART SCHEDULE IF NO PLAN EXISTS ---
       _generateDefaultPlan();
       _savePlan();
     }
@@ -49,34 +49,25 @@ class _QuestScreenState extends State<QuestScreen> {
     });
   }
 
-  // --- THE SMART SCHEDULE ENGINE ---
   void _generateDefaultPlan() {
     List<String> template;
     
-    // Customize the 7-day loop based on class
     switch (_profile!.playerClass) {
-      case HunterClass.warrior:
-      case HunterClass.knight:
-      case HunterClass.fighter:
-        template = ['STR', 'STR', 'END', 'REST', 'AGI', 'STR', 'REST']; break;
-      case HunterClass.assassin:
-      case HunterClass.ranger:
-        template = ['AGI', 'AGI', 'STR', 'REST', 'END', 'AGI', 'REST']; break;
-      case HunterClass.mage:
-      case HunterClass.scholar:
-        template = ['INT', 'INT', 'REST', 'END', 'INT', 'AGI', 'REST']; break;
-      case HunterClass.tank:
-        template = ['END', 'END', 'STR', 'REST', 'END', 'INT', 'REST']; break;
-      default: // Beginner / None
-        template = ['STR', 'AGI', 'INT', 'END', 'REST', 'STR', 'REST']; break;
+      case HunterClass.warrior: template = ['STR', 'STR', 'END', 'REST', 'AGI', 'STR', 'REST']; break;
+      case HunterClass.knight: template = ['STR', 'STR', 'END', 'REST', 'AGI', 'STR', 'REST']; break;
+      case HunterClass.fighter: template = ['STR', 'STR', 'END', 'REST', 'AGI', 'STR', 'REST']; break;
+      case HunterClass.assassin: template = ['AGI', 'AGI', 'STR', 'REST', 'END', 'AGI', 'REST']; break;
+      case HunterClass.ranger: template = ['AGI', 'AGI', 'STR', 'REST', 'END', 'AGI', 'REST']; break;
+      case HunterClass.mage: template = ['INT', 'INT', 'REST', 'END', 'INT', 'AGI', 'REST']; break;
+      case HunterClass.scholar: template = ['INT', 'INT', 'REST', 'END', 'INT', 'AGI', 'REST']; break;
+      case HunterClass.tank: template = ['END', 'END', 'STR', 'REST', 'END', 'INT', 'REST']; break;
+      default: template = ['STR', 'AGI', 'INT', 'END', 'REST', 'STR', 'REST']; break;
     }
 
-    // Pre-fill the calendar for the next 60 days
     DateTime now = DateTime.now();
     for (int i = 0; i < 60; i++) {
       DateTime d = now.add(Duration(days: i));
       String key = _getDateKey(d);
-      // d.weekday is 1(Mon) to 7(Sun). Array is 0 to 6.
       _monthlyPlan[key] = template[d.weekday - 1];
     }
   }
@@ -152,7 +143,8 @@ class _QuestScreenState extends State<QuestScreen> {
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Uncompleted Quests Regenerated!")));
   }
 
-List<Quest> _generateTargetedQuests(int amount, String plan) {
+  // --- FULLY BRACKETED TO FIX LINTER WARNINGS ---
+  List<Quest> _generateTargetedQuests(int amount, String plan) {
     List<Quest> newQuests = [];
     List<Map<String, dynamic>> pool = [];
 
@@ -296,11 +288,7 @@ List<Quest> _generateTargetedQuests(int amount, String plan) {
               height: 140, margin: const EdgeInsets.only(bottom: 30),
               child: ListView(
                 scrollDirection: Axis.horizontal, padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                children: [
-                  _buildGateCard("Goblin Hideout", "E-Rank", "STR", Colors.brown, 50, 10),
-                  _buildGateCard("Slime Swamp", "D-Rank", "AGI", Colors.green, 150, 25),
-                  _buildGateCard("Unknown Distortion", "??-Rank", "HIDDEN", Colors.purpleAccent, 999, 999, isHidden: true),
-                ],
+                children: MonsterDatabase.initialDungeonMobs.map((mob) => _buildGateCard(mob)).toList(),
               ),
             ),
           ],
@@ -309,34 +297,30 @@ List<Quest> _generateTargetedQuests(int amount, String plan) {
     );
   }
 
-  // --- NEW: Wrap Gate in GestureDetector to launch Combat Screen ---
-  Widget _buildGateCard(String name, String rank, String stat, Color color, int enemyHp, int enemyAtk, {bool isHidden = false}) {
+  Widget _buildGateCard(Monster mob) {
     return GestureDetector(
       onTap: () {
-        if (isHidden) {
+        if (mob.isHidden) {
           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("You are not high enough rank to enter this Gate.")));
           return;
         }
         Navigator.push(context, MaterialPageRoute(builder: (context) => CombatScreen(
-          monsterName: name.split(' ').first, // "Goblin" or "Slime"
-          enemyMaxHp: enemyHp,
-          enemyAtk: enemyAtk,
-          colorTheme: color,
-        ))).then((_) => _loadData()); // Reload stats/coins when returning!
+          enemy: mob, 
+        ))).then((_) => _loadData()); 
       },
       child: Container(
         width: 140, margin: const EdgeInsets.only(right: 12.0),
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.surface, borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: color.withValues(alpha: 0.6), width: 2),
+          border: Border.all(color: mob.colorTheme.withValues(alpha: 0.6), width: 2),
         ),
         padding: const EdgeInsets.all(12.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2), decoration: BoxDecoration(color: color.withValues(alpha: 0.3), borderRadius: BorderRadius.circular(4)), child: Text(rank, style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.bold))),
-            Text(isHidden ? "???" : name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
-            Row(children: [Icon(isHidden ? Icons.visibility_off : Icons.token, color: Colors.grey, size: 12), const SizedBox(width: 4), Text("Focus: $stat", style: const TextStyle(color: Colors.grey, fontSize: 10))]),
+            Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2), decoration: BoxDecoration(color: mob.colorTheme.withValues(alpha: 0.3), borderRadius: BorderRadius.circular(4)), child: Text(mob.rank, style: TextStyle(color: mob.colorTheme, fontSize: 10, fontWeight: FontWeight.bold))),
+            Text(mob.isHidden ? "???" : mob.name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+            Row(children: [Icon(mob.isHidden ? Icons.visibility_off : Icons.token, color: Colors.grey, size: 12), const SizedBox(width: 4), Text("Focus: ${mob.statFocus}", style: const TextStyle(color: Colors.grey, fontSize: 10))]),
           ],
         ),
       ),
