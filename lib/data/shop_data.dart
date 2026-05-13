@@ -51,18 +51,43 @@ class ShopData {
     {'name': 'Slime Core', 'desc': 'Crafting Material', 'cat': ItemCategory.material, 'rarity': ItemRarity.common},
   ];
 
+  static int _rollPrice(ItemRarity rarity) {
+    switch (rarity) {
+      case ItemRarity.common:    return 1   + _rng.nextInt(20);
+      case ItemRarity.uncommon:  return 21  + _rng.nextInt(40);
+      case ItemRarity.rare:      return 80  + _rng.nextInt(71);
+      case ItemRarity.epic:      return 200 + _rng.nextInt(151);
+      case ItemRarity.legendary: return 450 + _rng.nextInt(251);
+    }
+  }
+
   static List<ShopProduct> generateDailyShop() {
     List<ShopProduct> dailyItems = [];
+    final Set<String> usedHighRarityNames = {};
+
     for (int i = 0; i < 6; i++) {
-      final data = gearPool[_rng.nextInt(gearPool.length)];
+      Map<String, dynamic> data;
+      int attempts = 0;
+      do {
+        data = gearPool[_rng.nextInt(gearPool.length)];
+        attempts++;
+      } while (
+        attempts < 20 &&
+        (data['rarity'] == ItemRarity.epic || data['rarity'] == ItemRarity.legendary) &&
+        usedHighRarityNames.contains(data['name'])
+      );
+
       final rarity = data['rarity'] as ItemRarity;
+      if (rarity == ItemRarity.epic || rarity == ItemRarity.legendary) {
+        usedHighRarityNames.add(data['name'] as String);
+      }
       int buff = 0;
       if (data.containsKey('min')) buff = (data['min'] as int) + _rng.nextInt(((data['max'] as int) - (data['min'] as int)) + 1);
-      
+
       dailyItems.add(ShopProduct(
         id: 'shop_${DateTime.now().millisecondsSinceEpoch}_$i',
         name: data['name'], description: (data['desc'] as String).replaceAll('%AMT%', buff.toString()),
-        price: 15 + _rng.nextInt(100), type: ProductType.item, category: data['cat'], rarity: rarity,
+        price: _rollPrice(rarity), type: ProductType.item, category: data['cat'], rarity: rarity,
         buffStat: data['stat'], inGameBoost: buff, dailyReduction: buff, equipSlot: data['slot'],
       ));
     }
