@@ -43,3 +43,14 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Non-Android platforms (project targets Android only)
+/ios/
+/web/
+/linux/
+/macos/
+/windows/
+
+# Flutter-generated local metadata
+.metadata
+devtools_options.yaml
